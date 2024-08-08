@@ -6,3 +6,6 @@ def LOGIN(request):
 
 def REG(request):
     return render(request,'Accounts/registration.html')
+
+def reset(request):
+    return render(request,'Accounts/reset_pass.html')
