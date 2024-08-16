@@ -6,6 +6,9 @@ import uuid
 from django.conf import settings
 from .models import *
 from django.core.mail import send_mail
+
+###User login and logout
+#------------------------------------------------------------------------------
 def LOGIN(request):
     if request.method =='POST':
         UserName=request.POST.get('username')
@@ -20,11 +23,23 @@ def LOGIN(request):
             if prof.is_verified == True:
                login(request, user)
                return redirect('home')
+            else:
+              return redirect('error')
+            return redirect('home')
         else:
-            return redirect('error')
-        return redirect('home')
+            messages.warning(request,"Username or Password Not Found")
     return render(request,'Accounts/login.html')
 
+def LOGOUT(request):
+    logout(request)
+    messages.warning(request,"You are logged Out")
+    return redirect('login')
+
+#--------------------------------------------------------------------------------------------
+
+### User email verfied reg
+
+#----------------------------------------------------------------------------------------------
 def REG(request):
     if request.method =='POST':
         First_name=request.POST.get('first')
@@ -59,23 +74,6 @@ def REG(request):
 
     return render(request,'Accounts/registration.html')
 
-def LOGOUT(request):
-    logout(request)
-    messages.warning(request,"You are logged Out")
-    return redirect('login')
-
-def RESET_PASS(request):
-     if request.method =='POST':
-        email=request.POST.get('email')
-        Pass=request.POST.get('password')
-        Pass1=request.POST.get('password1')
-
-        if User.objects.get(email = email).exists():
-            messages.warning(request, "Your User Found.")
-            return render('login')
-
-     return render(request,'Accounts/reset_pass.html')
-
 def success(request):
      
      return render(request,'Accounts/success.html')
@@ -90,10 +88,11 @@ def error(request):
 
 def send_mail_registration(Email, auth_token):
     subject = 'Your Account Authentication Link'
-    message = f'hi, please click the link to verify your account http://127.0.0.1:8000/accounts/verify/{auth_token}'
+    message = f'hi, Here is the verification link for your account: http://127.0.0.1:8000/accounts/verify/{auth_token}'
     email_from = settings.EMAIL_HOST_USER
     recipient_list = [Email]
     send_mail(subject, message, email_from, recipient_list)
+
 
 def verify(request, auth_token):
     profile_obj= Profile.objects.filter(auth_token=auth_token).first()
@@ -101,3 +100,51 @@ def verify(request, auth_token):
     profile_obj.save()
     messages.success(request,'Congratulation Account Verify its done')
     return redirect('login')
+#------------------------------------------------------------------------------------------------
+
+#### pass reset####
+#------------------------------------------------------------------------------------------------
+def RESET_PASS(request):
+     if request.method =='POST':
+        email=request.POST.get('email')
+        if email:
+            user_prof = User.objects.filter(email=email)
+            if user_prof:
+                res_prof= Profile.objects.get(user = user_prof)
+                auth_token = res_prof.auth_token 
+                send_mail_reset(email, auth_token)
+                return redirect('success1')
+            else:
+                messages.warning(request,"Mail Address Not Found")
+                return redirect('reset')
+        
+
+     return render(request,'Accounts/reset_pass.html')
+
+def success1(request):
+     return render(request,'Accounts/success1.html')
+
+def send_mail_reset(Email, auth_token):
+    subject = 'Your Account Password Reset Link'
+    message = f'hi, Here is the Password Reset link for your account Pass Reset: http://127.0.0.1:8000/accounts/Reset_user_pass/{auth_token}'
+    email_from = settings.EMAIL_HOST_USER
+    recipient_list = [Email]
+    send_mail(subject, message, email_from, recipient_list)
+
+def Reset_user_pass(request, auth_token):
+    profile_obj= Profile.objects.filter(auth_token=auth_token).first()
+    if profile_obj:
+        if request.method == 'POST':
+            pass0 = request.POST.get('pass')
+            pass1 = request.POST.get('pass1')
+            if pass0 == pass1:
+                user = profile_obj.user
+                user.set_password(pass0)
+                user.save()
+                messages.success(request, "Your Password Successfully Changed.")
+                return redirect('login')
+            else:
+                messages.success(request, "Your Password and Retype Password Not Matched.")
+
+    return render(request, 'Accounts/new_pass.html')
+
