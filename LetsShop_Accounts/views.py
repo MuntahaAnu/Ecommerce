@@ -22,10 +22,10 @@ def LOGIN(request):
             prof = Profile.objects.get(user = user)
             if prof.is_verified == True:
                login(request, user)
-               return redirect('home')
+               return redirect('user_desh')
             else:
               return redirect('error')
-            return redirect('home')
+            
         else:
             messages.warning(request,"Username or Password Not Found")
     return render(request,'Accounts/login.html')
@@ -147,4 +147,13 @@ def Reset_user_pass(request, auth_token):
                 messages.success(request, "Your Password and Retype Password Not Matched.")
 
     return render(request, 'Accounts/new_pass.html')
+
+#-------------------------------------------------------------------------------------------------------------------------
+#User Dashboard
+#-------------------------------------------------------------------------------------------------------------------------
+
+def user_desh(request):
+    user = request.user
+    add = Address.objects.filter(user=user)
+    return render(request,'Accounts/User-desh.html', locals())
 
